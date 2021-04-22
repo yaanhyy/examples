@@ -4,7 +4,7 @@ use futures::future::{ready, Ready};
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row, MySqlPool};
-
+use chrono::prelude::*;
 // this struct will use to receive user input
 #[derive(Serialize, Deserialize)]
 pub struct TodoRequest {
@@ -16,8 +16,9 @@ pub struct TodoRequest {
 #[derive(Serialize, FromRow)]
 pub struct Todo {
     pub id: i32,
-    pub description: String,
+    pub spec: String,
     pub done: i8,
+    pub update_at: NaiveDateTime,
 }
 
 // implementation of Actix Responder for Todo struct so we can return Todo from action handler
@@ -40,7 +41,7 @@ impl Todo {
         let mut todos = vec![];
         let recs = sqlx::query!(
             r#"
-                SELECT id, description, done
+                SELECT id, spec, done, update_at
                     FROM todos
                 ORDER BY id
             "#
@@ -51,8 +52,9 @@ impl Todo {
         for rec in recs {
             todos.push(Todo {
                 id: rec.id,
-                description: rec.description,
+                spec: rec.spec,
                 done: rec.done,
+                update_at: rec.update_at
             });
         }
 
@@ -71,8 +73,9 @@ impl Todo {
 
         Ok(Todo {
             id: rec.id,
-            description: rec.description,
+            spec: rec.spec,
             done: rec.done,
+            update_at: rec.update_at
         })
     }
 
@@ -84,8 +87,9 @@ impl Todo {
             .map(|row: MySqlRow| {
                 Todo {
                     id: row.get(0),
-                    description: row.get(1),
-                    done: row.get(2)
+                    spec: row.get(1),
+                    done: row.get(2),
+                    update_at: row.get(3)
                 }
             })
             .fetch_one(&mut tx)
@@ -104,8 +108,9 @@ impl Todo {
             .map(|row: MySqlRow| {
                 Todo {
                     id: row.get(0),
-                    description: row.get(1),
-                    done: row.get(2)
+                    spec: row.get(1),
+                    done: row.get(2),
+                    update_at: row.get(3)
                 }
             })
             .fetch_one(&mut tx)
